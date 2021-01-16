@@ -1,91 +1,223 @@
 import java.util.*;
 import java.io.*;
 
+
 public class boggleSolver {
 
-	public static void traverse (char[][] board, String word, int x, int y, boolean[][]avail) {
+	final static int BOARDSIZE = 4;
 
-		char[][]board2 = board;
-		word=word+board[x][y];
-		System.out.println(word);
-		avail[x][y]=false;
-		
-		boolean[][]availCopy = avail;
+	final static int MAXLETTERS = 12;
+	final static int MINLETTERS = 4;
 
-		if (x>0&&avail[x-1][y]) { //L
-			traverse(board2,word,x-1,y,availCopy);
-		} 
+	final static int CHARBREAK = 70;
 
-		
-		if (x>0&&y>0&&avail[x-1][y-1]) { //LU
-			traverse(board2,word,x-1,y-1,availCopy);
-		} 
 
-		if (y>0&&avail[x][y-1]) { //U
-			traverse(board2,word,x,y-1,availCopy);
-		} 
+	static class TrieNode{
+		TrieNode[] children = new TrieNode[26];
 
-		
-		if (y>0&&x<3&&avail[x+1][y]) { //RU
-			traverse(board2,word,x+1,y,availCopy);
+		boolean endOfWord;
+
+		TrieNode() {
+			endOfWord = false;
+			for (int i = 0; i<26; i++) {
+				children[i]=null;
+			}
 		}
+	}
+
+	static TrieNode root;  
 
 
-		if (x<3&&avail[x+1][y]) { //R
-			traverse(board2,word,x+1,y,availCopy);
+	//Adds words into the trie. Adds one letter at a time, 
+	//jumping onto that node to see where to add the next letter.
+	//On the last letter, declare that node as the end of a word.
+	static void add (String s) 
+	{
+		TrieNode curNode = root;
+
+		int index; 
+		for (int i = 0; i<s.length();i++) {
+			index = s.charAt(i) - 'a'; 
+			if (curNode.children[index] == null) {
+				curNode.children[index] = new TrieNode(); 
+			}
+			curNode = curNode.children[index];	
 		}
-		if (y<3&&x<3&&avail[x+1][y+1]) { //RD
-			traverse(board2,word,x+1,y+1,availCopy);
+		curNode.endOfWord=true;
+	}
+
+
+	//A check to determine whether to continue traversing 
+	//through the board by determining whether the branch
+	//of the tree has ended with those letters
+	static boolean goodSoFar(String s) {
+
+		TrieNode curNode = root;
+
+		for (int i =0;i<s.length();i++) {
+			if (curNode.children[s.charAt(i)-97]==null) {
+				return false;
+			}
+			curNode=curNode.children[s.charAt(i)-97];
 		}
-
-		if (y<3&&avail[x][y+1]) { //D
-			traverse(board2,word,x,y+1,availCopy);
-		} 
-		if (y<3&&x>0&&avail[x-1][y+1]) { //DL
-			traverse(board2,word,x-1,y+1,availCopy);
-		} 
-		return;
-
+		return true;
 
 	}
+
+	//Determines whether the current word being made is a real word
+	static boolean check (String s) {
+
+		TrieNode curNode = root;
+
+		for (int i =0;i<s.length();i++) {
+			if (curNode.children[s.charAt(i)-97]==null) {
+				return false;
+			}
+			curNode=curNode.children[s.charAt(i)-97];
+		}
+
+		if (!(curNode.endOfWord)) {
+			return false;
+		}
+		return true;
+	}
+
+	//Allows the ArrayList to be sorted by size
+	static Comparator<String> C = new Comparator <String>(){
+		public int compare(String s1, String s2) {
+			return Integer.compare(s2.length(), s1.length());
+		}
+	};
+
+	//DFS algorithm that traverses through the board
+	//creating any possible string of letters which may be a word
+	//in the trie and dictionary. Calls itself on all adjacent squares
+	//terminating with a dead end or if the string is not in the trie
+	public static void traverse (char[][] board, String word, int x, int y, boolean[][]avail, TrieNode root, ArrayList<String> valids, int letters ) {
+
+		if (x<0 || x>=BOARDSIZE || y<0 || y>=BOARDSIZE) {
+			return;
+		}
+		if (!avail[x][y]) {
+			return;
+		}
+		if (letters>MAXLETTERS) {
+			return;
+		}
+		if (!goodSoFar(word)) {
+			return;
+		}
+
+		word+=board[x][y];
+		letters++;
+
+		if (check(word)&&!valids.contains(word)&&letters>=MINLETTERS) {
+			valids.add(word);
+		}
+
+		avail[x][y]=false;
+		boolean[][] availCopy = avail;
+
+		traverse(board,word,x-1,y-1,availCopy,root,valids,letters); //LU
+		traverse(board,word,x-1,y,availCopy,root,valids,letters); //L
+		traverse(board,word,x-1,y+1,availCopy,root,valids,letters); //LD
+		traverse(board,word,x,y+1,availCopy,root,valids,letters); //D
+		traverse(board,word,x+1,y+1,availCopy,root,valids,letters); //RD
+		traverse(board,word,x+1,y,availCopy,root,valids,letters); //R
+		traverse(board,word,x+1,y-1,availCopy,root,valids,letters); //RU
+		traverse(board,word,x,y-1,availCopy,root,valids,letters); //U
+		avail[x][y]=true;
+	}
+
+
+
 	public static void main(String[] args) throws FileNotFoundException, IOException {
+
 
 		Scanner in = new Scanner (System.in);
 		BufferedReader inFile = new BufferedReader(new FileReader("dictionary.txt"));
 
-		Map<Integer, String> words = new HashMap<>();
 
+		//Adding all words from the dictionary into the trie
+		root = new TrieNode();
 		String curr="";
-		int m = 0;
 		while ((curr=inFile.readLine())!=null) {
-			words.put(m, curr);
-			m++;
+			if (curr.length()<=MAXLETTERS) {
+				add(curr);
+			}
 		}
 		inFile.close();
 
 
-		System.out.println("Enter your board");
-		String input = in.nextLine();
+		ArrayList<String> valids = new ArrayList<String>();
 
-		char[][] board = new char[4][4];
-		for (int i = 0; i<4; i++) {
-			for (int j = 0; j<4; j++) {
+		System.out.println("Enter your board:");
+		for (int i =0; i<Math.pow(BOARDSIZE,2); i++) {
+			System.out.print("_");
+		}
+		System.out.println();
+		String input = in.nextLine().toLowerCase();;
+
+		while (input.length()<Math.pow(BOARDSIZE,2)){
+			System.out.println("Invalid board. Please print again:");
+			for (int i =0; i<Math.pow(BOARDSIZE,2); i++) {
+				System.out.print("_");
+			}
+			System.out.println();
+			input = in.nextLine().toLowerCase();
+		}
+
+		long start = System.currentTimeMillis();
+
+
+		//initializing the arrays that represent letters
+		//in the board and whether they have already been visited
+		char[][] board = new char[BOARDSIZE][BOARDSIZE];
+		for (int i = 0; i<BOARDSIZE; i++) {
+			for (int j = 0; j<BOARDSIZE; j++) {
 				board [j][i]=input.charAt(0);
 				input=input.substring(1);
 			}
 		}
-		boolean[][] avail = new boolean[4][4];
-		for (int i = 0; i<4; i++) {
-			for (int j = 0; j<4; j++) {
+		boolean[][] avail = new boolean[BOARDSIZE][BOARDSIZE];
+		for (int i = 0; i<BOARDSIZE; i++) {
+			for (int j = 0; j<BOARDSIZE; j++) {
 				avail [j][i]=true;
 			}
 		}
-		
-//		for (int i = 0; i<4; i++) {
-//			for (int j = 0; j<4; j++) {
-//				traverse(board,"",j,i,avail);
-//			}
-//		}
-		traverse(board,"",0,0,avail);
+
+		for (int i = 0; i<BOARDSIZE; i++) {
+			for (int j = 0; j<BOARDSIZE; j++) {
+				traverse(board,"",j,i,avail, root, valids, 0);
+			}
+		}
+
+		//sorts the ArrayList of solutions by size,
+		//formats them so one length displays in one block
+		Collections.sort(valids);
+		Collections.sort(valids, C);
+
+		int counter=0;
+		int formatLetters=MAXLETTERS+1;
+
+		for (int i = 0 ; i<valids.size(); i++) {
+			if (valids.get(i).length()<formatLetters) {
+				counter=0;
+				formatLetters=valids.get(i).length();
+				System.out.println("\n\n"+valids.get(i).length()+" letters:");
+				System.out.print("\t");
+			}
+			System.out.print(valids.get(i)+"  ");
+			counter+=valids.get(i).length()+2;
+			if (counter>CHARBREAK&&i+1<valids.size()) {
+				counter=0;
+				System.out.println();
+				System.out.print("\t");
+			}
+		}
+
+		long finish = System.currentTimeMillis();
+
+		System.out.println("\n\nElapsed time: "+((finish-start)/1000.0)+"s");
 	}
 }
