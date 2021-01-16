@@ -1,7 +1,7 @@
 import java.util.*;
 import java.io.*;
 
-public class anagramSolver {
+public class anagramSolverOld {
 
 
 	public static int charBreak = 70;
