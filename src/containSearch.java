@@ -4,7 +4,7 @@ import java.io.*;
 public class containSearch {
 
 
-	public static int charBreak = 70;
+	final static int CHARBREAK = 70;
 	
 	
 	public static void contains(String section, List<String>words, int high, int low, int mode) {
@@ -49,7 +49,7 @@ public class containSearch {
 				for (int n = 0 ; n<prints.size(); n++) {
 					System.out.print(prints.get(n)+"  ");
 					counter+=prints.get(n).length()+2;
-					if (counter>charBreak&&i+1<prints.size()) {
+					if (counter>CHARBREAK&&i+1<prints.size()) {
 						counter=0;
 						System.out.println();
 						System.out.print("\t");
@@ -77,6 +77,8 @@ public class containSearch {
 		System.out.println("Choose a function:\n1 - Contains\n2 - Starts with\n3 - Ends with");
 
 		int choice = Integer.parseInt(in.nextLine());
+		
+		long start =0;
 
 		 if (choice==1) {
 			System.out.println("Return all words that contain _____");
@@ -90,6 +92,8 @@ public class containSearch {
 			System.out.print("Min letters:  ");
 			int low = in.nextInt();
 
+			start = System.currentTimeMillis();
+			
 			contains(section, words, high, low, 0);
 		}
 		else if (choice==2) {
@@ -103,6 +107,8 @@ public class containSearch {
 
 			System.out.print("Min letters:  ");
 			int low = in.nextInt();
+			
+			start = System.currentTimeMillis();
 
 			contains(section, words, high, low, 1);
 		}
@@ -117,9 +123,15 @@ public class containSearch {
 
 			System.out.print("Min letters:  ");
 			int low = in.nextInt();
+			
+			start = System.currentTimeMillis();
 
 			contains(section, words, high, low, 2);
 		}
+		 
+			long finish = System.currentTimeMillis();
+
+			System.out.println("\n\nElapsed time: "+((finish-start)/1000.0)+"s");
 		
 	}
 }
